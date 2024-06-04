@@ -1,5 +1,15 @@
-import { Controller, Get, Param } from '@nestjs/common';
 import { CarsService } from './cars.service';
+
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 
 @Controller('cars')
 export class CarsController {
@@ -11,13 +21,22 @@ export class CarsController {
   }
 
   @Get(':id')
-  getCarByID(@Param('id') id: string) {
-    const parseId = Number(id);
+  getCarByID(@Param('id', ParseIntPipe) id: number) {
+    return this.carsService.findOneById(id);
+  }
 
-    if (parseId >= 0) {
-      return this.carsService.findOneById(Number(id));
-    } else {
-      return { message: 'Car ID Failed, check and retry again' };
-    }
+  @Post()
+  createCar(@Body() body: any) {
+    return this.carsService.save(body);
+  }
+
+  @Patch(':id')
+  updateCar(@Body() body: any, @Param('id', ParseIntPipe) id: number) {
+    return this.carsService.update(id, body);
+  }
+
+  @Delete(':id')
+  deleteCar(@Param('id', ParseIntPipe) id: number) {
+    return this.carsService.delete(id);
   }
 }
