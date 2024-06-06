@@ -1,40 +1,50 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { v4 as uuid } from 'uuid';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
-interface Car {
-  brand: string;
-  model: string;
-}
+import { Car } from './interfaces/car.interface';
+import { CreateCarDTO } from './dto/create-car.dto';
+import { UpdateCarDTO } from './dto/update-car.dto';
 
 @Injectable()
 export class CarsService {
-  private cars = [
+  private cars: Car[] = [
     {
-      id: 1,
+      id: uuid(),
       brand: 'Toyota',
       model: 'Autana',
     },
     {
-      id: 2,
+      id: uuid(),
       brand: 'Subaru',
       model: 'Impreza',
     },
     {
-      id: 3,
+      id: uuid(),
       brand: 'Audi',
       model: 'Q7',
     },
     {
-      id: 4,
+      id: uuid(),
       brand: 'BMW',
       model: 'M7',
     },
   ];
 
+  /**
+   * findAll find all cars
+   */
   findAll() {
     return this.cars;
   }
 
-  findOneById(id: number) {
+  /**
+   * findOneById find one car
+   */
+  findOneById(id: string): Car {
     const car = this.cars.find((item) => item.id === id);
 
     if (!car) throw new NotFoundException(`Car with id '${id}' not found`);
@@ -42,33 +52,60 @@ export class CarsService {
     return car;
   }
 
-  save(car: Car) {
-    const id = this.cars.length + 1;
+  /**
+   * findOneByModel find one model car
+   */
+  findOneByModel(model: string): Car {
+    return this.cars.find((item) => item.model === model);
+  }
 
-    this.cars.push({
-      id,
-      brand: car.brand,
-      model: car.model,
+  /**
+   * create allow created a new car
+   */
+  create(createCarDTO: CreateCarDTO): Car {
+    const createCar: Car = {
+      id: uuid(),
+      ...createCarDTO,
+    };
+
+    const findModel = this.findOneByModel(createCarDTO.model);
+
+    if (findModel)
+      throw new BadRequestException(
+        `Car with model '${findModel.model}' exist!`,
+      );
+
+    this.cars.push(createCar);
+    return createCar;
+  }
+
+  /**
+   * update allow modified attributes car
+   */
+  update(id: string, updateCarDTO: UpdateCarDTO): Car {
+    let carDB: Car = this.findOneById(id);
+
+    if (updateCarDTO.id && updateCarDTO.id !== id)
+      throw new BadRequestException('ID sent inside body is not valid');
+
+    this.cars = this.cars.map((car) => {
+      if (car.id === id) {
+        carDB = { ...carDB, ...updateCarDTO, id };
+        return carDB;
+      }
+
+      return car;
     });
 
-    return this.cars;
+    return carDB;
   }
 
-  update(id: number, data: Car) {
-    const findCar = this.cars.find((car) => car.id === id);
-
-    if (!findCar) {
-      throw new NotFoundException(`Car with id '${id}' not found`);
-    }
-
-    findCar.brand = data.brand;
-    findCar.model = data.model;
-    return this.cars;
-  }
-
-  delete(id: number) {
-    const newCars = this.cars.filter((car) => car.id !== id);
-    this.cars = newCars;
+  /**
+   * delete allow deleted a car
+   */
+  delete(id: string): Car[] {
+    const findCar = this.findOneById(id);
+    this.cars = this.cars.filter((car) => car.id !== findCar.id);
     return this.cars;
   }
 }
